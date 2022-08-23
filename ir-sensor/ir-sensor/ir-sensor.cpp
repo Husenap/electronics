@@ -5,7 +5,8 @@
 #include <string_view>
 #include <thread>
 
-#include <bcm2835.h>
+#include "controller-definitions.hpp"
+#include "gpio.hpp"
 
 static constexpr unsigned int SensorPin = RPI_GPIO_P1_12;
 static constexpr auto         MaxPulse  = std::chrono::seconds(1);
@@ -18,76 +19,10 @@ void signalHandler(int signum) {
   exit(signum);
 }
 
-template <typename _Rep, typename _Period>
-void waitForPin(uint8_t pin, uint8_t state, const std::chrono::duration<_Rep, _Period>& timeout) {
-  const auto t0 = std::chrono::high_resolution_clock::now();
-  while (bcm2835_gpio_lev(pin) == state &&
-         std::chrono::high_resolution_clock::now() - t0 < timeout) {
-    std::this_thread::sleep_for(std::chrono::microseconds(5));
-  }
+Controller::Pulse readPulse() {
+  return {measureTime([]() { waitForPin(SensorPin, LOW, MaxPulse); }).count(),
+          measureTime([]() { waitForPin(SensorPin, HIGH, MaxPulse); }).count()};
 }
-
-template <typename Op>
-auto measureTime(Op operation) {
-  const auto t0 = std::chrono::high_resolution_clock::now();
-  operation();
-  return std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::high_resolution_clock::now() - t0);
-}
-
-struct Controller {
-  struct Pulse {
-    int64_t pulse, space;
-  };
-  // name of the controller
-  std::string_view name;
-  // number of bits in the scancodes
-  uint16_t bits = 32;
-  // relative error tolerance 30 = 30%
-  uint8_t eps = 30;
-  // absolute error tolerance in microseconds
-  int64_t aeps = 100;
-
-  // header  - the initial pulse and space
-  Pulse header;
-  // one - the pulse and space representing a one
-  Pulse one;
-  // zero - the pulse and space representing a zero
-  Pulse zero;
-
-  // repeat - the pulse and space for repeating a signal
-  Pulse repeat;
-
-  // gap - a long pulse after
-  int64_t gap;
-
-  bool isWithinRange(int64_t input, int64_t target) const {
-    const int64_t error = std::max(target * eps / 100, aeps);
-    return input >= target - error && input <= target + error;
-  }
-  bool match(Pulse input, Pulse target) const {
-    return isWithinRange(input.pulse, target.pulse) && isWithinRange(input.space, target.space);
-  }
-  Pulse readPulse() const {
-    return {measureTime([]() { waitForPin(SensorPin, LOW, MaxPulse); }).count(),
-            measureTime([]() { waitForPin(SensorPin, HIGH, MaxPulse); }).count()};
-  }
-};
-
-static constexpr Controller Andersson{
-    .name = "Andersson",
-    .bits = 32,
-    .eps  = 30,
-    .aeps = 100,
-
-    .header = {9500, 4400},
-    .one    = {674, 1500},
-    .zero   = {674, 440},
-
-    .repeat = {9500, 2126},
-
-    .gap = 108500,
-};
 
 int main() {
   std::signal(SIGINT, signalHandler);
@@ -102,7 +37,7 @@ int main() {
   constexpr Controller controller{Andersson};
   std::cout << "Loaded controller: " << controller.name << '\n';
   while (true) {
-    const auto pulse = controller.readPulse();
+    const auto pulse = readPulse();
     if (controller.match(pulse, controller.header)) {
       std::cout << "Recieved: header" << '\n';
     } else if (controller.match(pulse, controller.repeat)) {

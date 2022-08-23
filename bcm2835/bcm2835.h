@@ -1262,9 +1262,10 @@ typedef enum {
 #define BCM2835_SMI_RW_STROBE_LS 0           /*! < Shift for strobe cycles > */
 
 /* Registers masks for Direct Access control register */
-#define BCM2835_SMI_DIRCS_ENABLE 0x00000001 /*! < Set to enable SMI. 0 = Read from ext. devices > \
-                                             */
-#define BCM2835_SMI_DIRCS_START 0x00000002  /*! < Initiate SMI transfer > */
+#define BCM2835_SMI_DIRCS_ENABLE                                                                 \
+  0x00000001                               /*! < Set to enable SMI. 0 = Read from ext. devices > \
+                                            */
+#define BCM2835_SMI_DIRCS_START 0x00000002 /*! < Initiate SMI transfer > */
 #define BCM2835_SMI_DIRCS_DONE \
   0x00000004 /*! < Set if transfer has finished / Write to clear flag > */
 #define BCM2835_SMI_DIRCS_WRITE 0x00000008 /*! < 1 = Write to ext. devices > */

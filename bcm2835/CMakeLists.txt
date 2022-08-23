@@ -1,4 +1,10 @@
-add_library(bcm2835 SHARED bcm2835.c)
+set(target_name bcm2835)
+
+set(src_files
+  bcm2835/bcm2835.c
+  bcm2835/bcm2835.h)
+
+add_library(bcm2835 SHARED ${src_files})
 target_include_directories(bcm2835 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS bcm2835 DESTINATION lib)

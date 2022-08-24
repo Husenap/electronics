@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <string_view>
 
+struct Pulse {
+  int64_t           pulse, space;
+  constexpr int64_t total() const { return pulse + space; }
+};
+
 struct Controller {
-  struct Pulse {
-    int64_t pulse, space;
-  };
   // name of the controller
   std::string_view name;
   // number of bits in the scancodes
